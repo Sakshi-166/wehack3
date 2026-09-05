@@ -2,66 +2,204 @@ import { useRef, useState } from "react";
 
 const API_URL = "http://127.0.0.1:8000";
 
-function Answer({ data }) {
-  if (!data) return null;
-  return <div className="answer-card">
-    <div className="category-pill">{data.category_label}</div>
-    <h3>Here’s what you should do</h3>
-    <p className="explanation">{data.explanation}</p>
-    <div className="authority-box"><span className="label">Concerned authority</span><strong>{data.authority}</strong></div>
-    {data.phone && <div className="contact-row"><span>📞 Phone</span><span>{data.phone}</span></div>}
-    {data.email && <div className="contact-row"><span>✉️ Email</span><a href={`mailto:${data.email}`}>{data.email}</a></div>}
-    {data.portal && <a className="portal-button" href={data.portal} target="_blank" rel="noreferrer">Open official complaint portal ↗</a>}
-    {data.attachment_note && <p className="attachment-note">{data.attachment_note}</p>}
-  </div>;
-}
-
 export default function App() {
-  const [message,setMessage]=useState("");
-  const [selectedFile,setSelectedFile]=useState(null);
-  const [answer,setAnswer]=useState(null);
-  const [loading,setLoading]=useState(false);
-  const [error,setError]=useState("");
-  const fileInput=useRef(null);
+  const [description, setDescription] = useState("");
+  const [location, setLocation] = useState("");
+  const [files, setFiles] = useState([]);
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const fileInputRef = useRef(null);
 
-  async function submitReport(e) {
-    e.preventDefault();
-    if (!message.trim() && !selectedFile) { setError("Tell me what happened or attach an image/video."); return; }
-    setLoading(true); setError(""); setAnswer(null);
-    const fd=new FormData(); fd.append("message",message); if(selectedFile) fd.append("file",selectedFile);
+  function handleFiles(event) {
+    setFiles(Array.from(event.target.files || []));
+  }
+
+  async function handleSubmit(event) {
+    event.preventDefault();
+
+    if (!description.trim()) {
+      setError("Please describe your problem first.");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+    setResult(null);
+
+    const formData = new FormData();
+    formData.append("description", description);
+    formData.append("location", location);
+
+    files.forEach((file) => {
+      formData.append("files", file);
+    });
+
     try {
-      const r=await fetch(`${API_URL}/api/report`,{method:"POST",body:fd});
-      const d=await r.json();
-      if(!r.ok || !d.ok) throw new Error(d.error || "Something went wrong.");
-      setAnswer(d.result);
-    } catch { setError("Could not connect to the server. Make sure the FastAPI backend is running."); }
-    finally { setLoading(false); }
+      const response = await fetch(`${API_URL}/api/report`, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error("Backend returned an error.");
+      }
+
+      const data = await response.json();
+      setResult(data);
+    } catch (err) {
+      setError(
+        "Could not connect to the backend. Make sure FastAPI is running on port 8000."
+      );
+    } finally {
+      setLoading(false);
+    }
   }
 
-  function chooseFile(e) {
-    const f=e.target.files?.[0]; if(!f) return;
-    if(!f.type.startsWith("image/") && !f.type.startsWith("video/")) { setError("Please choose an image or video."); return; }
-    setSelectedFile(f); setError("");
-  }
+  return (
+    <main className="page">
+      <section className="chat-shell">
+        <header className="header">
+          <div>
+            <h1>Kya Karu?</h1>
+            <p>Tell us your problem. We'll help you find where to report it.</p>
+          </div>
+        </header>
 
-  return <main className="page"><section className="app-shell">
-    <header className="topbar"><div className="brand"><div className="logo">?</div><span>Kya Karu?</span></div></header>
-    <section className="hero">
-      {!answer ? <><div className="hero-icon">?</div><h1>Kya Karu?</h1><p>Don’t know where to complain? Tell us what happened.<br/>We’ll help you find the right authority.</p></> :
-      <div className="result-area"><div className="user-message"><span>You</span><p>{message || "Attached an image/video."}</p></div><Answer data={answer}/></div>}
-    </section>
+        <div className="content">
+          {!result && !loading && (
+            <div className="welcome">
+              <h2>What happened?</h2>
+              <p>
+                Describe your problem in simple words. You can also add a
+                photo or video as supporting evidence.
+              </p>
 
-    <form className="composer-wrap" onSubmit={submitReport}>
-      {selectedFile && <div className="file-chip"><span>📎 {selectedFile.name}</span><button type="button" onClick={()=>{setSelectedFile(null);if(fileInput.current)fileInput.current.value=""}}>×</button></div>}
-      <div className="composer">
-        <button type="button" className="add-button" onClick={()=>fileInput.current?.click()}>+</button>
-        <input ref={fileInput} type="file" accept="image/*,video/*" onChange={chooseFile} hidden />
-        <input className="message-input" value={message} onChange={e=>setMessage(e.target.value)} placeholder="What happened?" />
-        <button className="send-button" type="submit" disabled={loading}>{loading ? "…" : "↑"}</button>
-      </div>
-      {error && <p className="error">{error}</p>}
-      <p className="privacy-note">No account • No chat history • Lightweight local MVP</p>
-    </form>
-  </section></main>;
+              <div className="examples">
+                <button onClick={() => setDescription("There is a water problem in my college hostel.")}>
+                  College / Hostel
+                </button>
+                <button onClick={() => setDescription("The food I received from a restaurant was stale and unhygienic.")}>
+                  Food / Hotel
+                </button>
+                <button onClick={() => setDescription("There is a large pothole on my street.")}>
+                  Public Service
+                </button>
+              </div>
+            </div>
+          )}
+
+          {loading && (
+            <div className="status-card">
+              <div className="loader"></div>
+              <p>Finding the right authority...</p>
+            </div>
+          )}
+
+          {result && (
+            <div className="result-card">
+              <div className="result-label">ROUTING RESULT</div>
+              <h2>{result.authority}</h2>
+              <p className="reason">{result.reason}</p>
+
+              <div className="info-row">
+                <span>Category</span>
+                <strong>{result.category.replaceAll("_", " ")}</strong>
+              </div>
+
+              <div className="info-row">
+                <span>Complaint channel</span>
+                <strong>{result.official_channel}</strong>
+              </div>
+
+              {result.location && (
+                <div className="info-row">
+                  <span>Location</span>
+                  <strong>{result.location}</strong>
+                </div>
+              )}
+
+              <h3>What to do next</h3>
+              <ol>
+                {result.steps.map((step, index) => (
+                  <li key={index}>{step}</li>
+                ))}
+              </ol>
+
+              <a
+                className="official-link"
+                href={result.website}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Open official channel ↗
+              </a>
+
+              <button
+                className="new-report"
+                onClick={() => {
+                  setResult(null);
+                  setDescription("");
+                  setLocation("");
+                  setFiles([]);
+                }}
+              >
+                Report another problem
+              </button>
+            </div>
+          )}
+
+          {error && <div className="error">{error}</div>}
+
+          {!result && !loading && (
+            <form className="composer" onSubmit={handleSubmit}>
+              <textarea
+                value={description}
+                onChange={(event) => setDescription(event.target.value)}
+                placeholder="Type your problem here..."
+                rows="3"
+              />
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*,video/*"
+                multiple
+                hidden
+                onChange={handleFiles}
+              />
+
+              <div className="composer-bottom">
+                <div className="left-actions">
+                  <button
+                    type="button"
+                    className="plus"
+                    title="Add image or video"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    +
+                  </button>
+
+                  {files.length > 0 && (
+                    <span className="file-count">
+                      {files.length} attachment{files.length > 1 ? "s" : ""}
+                    </span>
+                  )}
+                </div>
+
+                <button className="send" type="submit">
+                  Send
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
+
+        <footer>
+          Kya Karu? guides you to existing official complaint channels. It does
+          not replace government or institutional authorities.
+        </footer>
+      </section>
+    </main>
+  );
 }
-
