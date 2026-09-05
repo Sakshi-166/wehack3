@@ -1,47 +1,56 @@
 import json
-import re
 from pathlib import Path
 
-DATA_FILE = Path(__file__).parent / "data" / "authorities.json"
-with open(DATA_FILE, "r", encoding="utf-8") as f:
-    AUTHORITIES = json.load(f)
+BASE_DIR = Path(__file__).resolve().parents[2]
+AUTHORITY_FILE = BASE_DIR / "database" / "authorities.json"
 
-def normalize(text: str) -> str:
-    return re.sub(r"\s+", " ", text.lower().strip())
 
-def classify_problem(text: str) -> dict:
-    text = normalize(text)
-    scores = {}
-    matched = {}
+def load_authorities():
+    with AUTHORITY_FILE.open("r", encoding="utf-8") as file:
+        return json.load(file)
 
-    for category, data in AUTHORITIES.items():
-        found = [k for k in data["keywords"] if k.lower() in text]
-        scores[category] = len(found)
-        matched[category] = found
 
-    best = max(scores, key=scores.get)
+def classify_problem(description: str):
+    text = description.lower()
+    authorities = load_authorities()
 
-    if scores[best] == 0:
+    best_match = None
+    best_score = 0
+
+    for item in authorities:
+        score = 0
+        for keyword in item.get("keywords", []):
+            if keyword.lower() in text:
+                score += 1
+
+        if score > best_score:
+            best_score = score
+            best_match = item
+
+    if best_match is None:
         return {
             "category": "general",
-            "category_label": "General / Need More Details",
-            "authority": "Please provide a little more information",
-            "phone": "",
-            "email": "",
-            "portal": "",
-            "explanation": "I could not confidently identify the responsible category. Tell me what happened and your city/state, and I can narrow it down.",
-            "matched_keywords": []
+            "authority": "Local / Relevant Grievance Authority",
+            "reason": "The problem could not be confidently matched to one of the current categories.",
+            "official_channel": "Check the relevant official government or institutional grievance channel.",
+            "website": "https://pgportal.gov.in/",
+            "steps": [
+                "Add more specific details about the problem.",
+                "Mention the location or organization involved.",
+                "Keep relevant evidence.",
+                "Use the official complaint channel suggested above."
+            ],
+            "confidence": "low"
         }
 
-    data = AUTHORITIES[best]
-    return {
-        "category": best,
-        "category_label": data["label"],
-        "authority": data["authority"],
-        "phone": data["phone"],
-        "email": data["email"],
-        "portal": data["portal"],
-        "explanation": data["explanation"],
-        "matched_keywords": matched[best]
-    }
+    confidence = "high" if best_score >= 2 else "medium"
 
+    return {
+        "category": best_match["category"],
+        "authority": best_match["authority"],
+        "reason": best_match["reason"],
+        "official_channel": best_match["official_channel"],
+        "website": best_match["website"],
+        "steps": best_match["steps"],
+        "confidence": confidence
+    }
