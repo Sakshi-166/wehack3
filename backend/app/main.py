@@ -1,10 +1,18 @@
 from pathlib import Path
-import uuid
+import json
+from datetime import datetime, timezone
+
 from fastapi import FastAPI, File, Form, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+
 from .classifier import classify_problem
 
-app = FastAPI(title="Kya Karu? API", version="1.0.0")
+BASE_DIR = Path(__file__).resolve().parents[2]
+DATABASE_FILE = BASE_DIR / "database" / "complaints.json"
+UPLOAD_DIR = BASE_DIR / "uploads"
+UPLOAD_DIR.mkdir(exist_ok=True)
+
+app = FastAPI(title="Kya Karu? API")
 
 app.add_middleware(
     CORSMiddleware,
@@ -14,48 +22,60 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-UPLOAD_DIR = Path(__file__).parent.parent / "uploads"
-UPLOAD_DIR.mkdir(exist_ok=True)
 
-ALLOWED_TYPES = {"image/jpeg","image/png","image/webp","video/mp4","video/webm","video/quicktime"}
+def save_complaint(record):
+    try:
+        with DATABASE_FILE.open("r", encoding="utf-8") as file:
+            complaints = json.load(file)
+    except (FileNotFoundError, json.JSONDecodeError):
+        complaints = []
 
-@app.get("/")
-def root():
-    return {"message": "Kya Karu? API is running"}
+    complaints.append(record)
+
+    with DATABASE_FILE.open("w", encoding="utf-8") as file:
+        json.dump(complaints, file, indent=2, ensure_ascii=False)
+
 
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    return {"status": "ok", "message": "Kya Karu backend is running"}
+
 
 @app.post("/api/report")
-async def report(message: str = Form(""), file: UploadFile | None = File(None)):
-    attachment = None
+async def report(
+    description: str = Form(...),
+    location: str = Form(""),
+    files: list[UploadFile] = File(default=[]),
+):
+    result = classify_problem(description)
 
-    if file and file.filename:
-        if file.content_type not in ALLOWED_TYPES:
-            return {"ok": False, "error": "Please upload an image or video file."}
+    saved_files = []
 
-        content = await file.read()
-        if len(content) > 15 * 1024 * 1024:
-            return {"ok": False, "error": "File is too large. Please keep it below 15 MB."}
+    for uploaded_file in files:
+        if not uploaded_file.filename:
+            continue
 
-        ext = Path(file.filename).suffix.lower()
-        saved_name = f"{uuid.uuid4().hex}{ext}"
-        (UPLOAD_DIR / saved_name).write_bytes(content)
+        safe_name = Path(uploaded_file.filename).name
+        destination = UPLOAD_DIR / safe_name
 
-        attachment = {
-            "original_name": file.filename,
-            "type": "image" if file.content_type.startswith("image/") else "video",
-            "size_bytes": len(content)
-        }
+        content = await uploaded_file.read()
+        destination.write_bytes(content)
+        saved_files.append(safe_name)
 
-    result = classify_problem(message)
+    record = {
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "description": description,
+        "location": location,
+        "attachments": saved_files,
+        "category": result["category"],
+        "authority": result["authority"],
+    }
 
-    if attachment:
-        result["attachment_note"] = (
-            f"I received your {attachment['type']} attachment. "
-            "For this lightweight MVP, the written description is used for routing."
-        )
+    save_complaint(record)
 
-    return {"ok": True, "result": result, "attachment": attachment}
-
+    return {
+        **result,
+        "location": location,
+        "attachments": saved_files,
+        "message": "Your problem has been routed to the most relevant authority available in the current database."
+    }
