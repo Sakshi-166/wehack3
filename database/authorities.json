@@ -1,1 +1,117 @@
+[
+  {
+    "category": "college",
+    "keywords": [
+      "college",
+      "university",
+      "student",
+      "professor",
+      "teacher",
+      "hod",
+      "department",
+      "hostel",
+      "warden",
+      "exam",
+      "marks",
+      "fees",
+      "class",
+      "campus",
+      "ragging"
+    ],
+    "authority": "College / Department Administration",
+    "reason": "College and campus-related problems are normally handled by the relevant department, HOD, student affairs office, or administration.",
+    "official_channel": "College Administration / Student Grievance Cell",
+    "website": "https://www.ugc.gov.in/",
+    "steps": [
+      "Write a short description of the problem.",
+      "Collect relevant evidence such as photos, messages, or documents.",
+      "Submit the complaint to the appropriate college grievance authority.",
+      "Keep the complaint acknowledgement or reference number."
+    ]
+  },
+  {
+    "category": "hotel_food",
+    "keywords": [
+      "hotel",
+      "restaurant",
+      "food",
+      "food poisoning",
+      "hygiene",
+      "dirty",
+      "stale",
+      "contaminated",
+      "restaurant",
+      "cafe",
+      "catering",
+      "food safety",
+      "bad food"
+    ],
+    "authority": "Food Safety Authority / Local Food Safety Department",
+    "reason": "Food quality, hygiene, and suspected food-safety problems should be reported to the responsible food-safety authority.",
+    "official_channel": "FSSAI / State Food Safety Complaint Channel",
+    "website": "https://www.fssai.gov.in/",
+    "steps": [
+      "Keep the bill, order details, and photos if available.",
+      "Record the restaurant or hotel name and location.",
+      "Submit the complaint through the appropriate official food-safety channel.",
+      "Keep the complaint reference number."
+    ]
+  },
+  {
+    "category": "police",
+    "keywords": [
+      "police",
+      "theft",
+      "stolen",
+      "crime",
+      "threat",
+      "harassment",
+      "fraud",
+      "assault",
+      "missing",
+      "violence",
+      "robbery",
+      "cybercrime",
+      "cyber crime"
+    ],
+    "authority": "Local Police / Appropriate Police Authority",
+    "reason": "Suspected crimes, threats, theft, violence, and similar matters should be directed to the appropriate police authority.",
+    "official_channel": "Local Police / State Police Portal",
+    "website": "https://digitalpolice.gov.in/",
+    "steps": [
+      "If there is immediate danger, contact emergency services first.",
+      "Record the important facts, date, time, and location.",
+      "Preserve relevant evidence.",
+      "Use the appropriate official police complaint channel."
+    ]
+  },
+  {
+    "category": "public_service",
+    "keywords": [
+      "road",
+      "pothole",
+      "garbage",
+      "waste",
+      "streetlight",
+      "water supply",
+      "drainage",
+      "sewage",
+      "municipality",
+      "traffic",
+      "public",
+      "street",
+      "electricity"
+    ],
+    "authority": "Local Municipal / Public Service Authority",
+    "reason": "Civic infrastructure and public-service issues are generally handled by the relevant municipal or government department.",
+    "official_channel": "Local Municipal / State Public Grievance Portal",
+    "website": "https://pgportal.gov.in/",
+    "steps": [
+      "Record the exact location.",
+      "Take a photo if it helps show the problem.",
+      "Submit the complaint to the relevant local authority.",
+      "Keep the complaint reference number for follow-up."
+    ]
+  }
+]
 
